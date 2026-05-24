@@ -4,8 +4,13 @@ on:
   workflow_call:
     inputs:
       image_name:
-        description: Image/repository suffix (for example dnsmasq, haproxy).
+        description: Image/repository suffix (for example dns, proxy, ssh, mail).
         required: true
+        type: string
+      image_name_legacy:
+        description: Legacy image/repository suffix to also push to (for example ssh-agent alongside ssh).
+        required: false
+        default: ""
         type: string
       replace_source:
         description: Image reference in examples/* to replace with the generated tag.
@@ -42,13 +47,25 @@ jobs:
         name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       -
+        name: Build image list
+        id: image_list
+        run: |
+          IMAGES="${{ github.repository_owner }}/${{ inputs.image_name }}"$'\n'"ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}"
+          if [ -n "${{ inputs.image_name_legacy }}" ]; then
+            IMAGES="${IMAGES}"$'\n'"${{ github.repository_owner }}/${{ inputs.image_name_legacy }}"
+            IMAGES="${IMAGES}"$'\n'"ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name_legacy }}"
+          fi
+          {
+            echo 'images<<EOF'
+            echo "${IMAGES}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      -
         name: Docker meta
         id: meta
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
-          images: |
-            ${{ github.repository_owner }}/${{ inputs.image_name }}
-            ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}
+          images: ${{ steps.image_list.outputs.images }}
           labels: |
             org.opencontainers.image.authors=${{ inputs.oc_authors }}
             org.opencontainers.image.description=${{ inputs.oc_description }}
@@ -237,7 +254,7 @@ jobs:
           TAGGED_IMAGE: ${{ steps.single_tag.outputs.tag }}
         run: |
           SSH_AGENT_IMAGE="pygmystack/ssh-agent"
-          if [ "${{ inputs.image_name }}" = "ssh-agent" ]; then
+          if [ "${{ inputs.image_name }}" = "ssh-agent" ] || [ "${{ inputs.image_name_legacy }}" = "ssh-agent" ]; then
             SSH_AGENT_IMAGE="${TAGGED_IMAGE}"
           fi
           pygmy --config examples/pygmy.yml addkey /home/runner/.ssh/id_rsa;
