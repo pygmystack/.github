@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       image_name_legacy:
-        description: Legacy image/repository suffix to also push to (for example ssh-agent alongside ssh).
+        description: Legacy image/repository suffix to also push to (for example dnsmasq, haproxy, ssh-agent, mailhog).
         required: false
         default: ""
         type: string
@@ -185,7 +185,7 @@ jobs:
           pygmy --config examples/pygmy.basic.yml export -o ./exported-config.yml
           cat ./exported-config.yml
           echo "Checking image references in started containers...";
-          docker container inspect amazeeio-${{ inputs.image_name }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
+          docker container inspect amazeeio-${{ inputs.image_name_legacy }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
       -
         name: Resolv file test
         run: |
@@ -247,14 +247,14 @@ jobs:
           pygmy --config examples/pygmy.yml export -o ./exported-config-2.yml
           cat ./exported-config-2.yml
           echo "Checking image references in started containers...";
-          docker container inspect amazeeio-${{ inputs.image_name }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
+          docker container inspect amazeeio-${{ inputs.image_name_legacy }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
       -
         name: SSH Key test
         env:
           TAGGED_IMAGE: ${{ steps.single_tag.outputs.tag }}
         run: |
           SSH_AGENT_IMAGE="pygmystack/ssh-agent"
-          if [ "${{ inputs.image_name }}" = "ssh-agent" ] || [ "${{ inputs.image_name_legacy }}" = "ssh-agent" ]; then
+          if [ "${{ inputs.image_name }}" = "ssh" ] || [ "${{ inputs.image_name_legacy }}" = "ssh-agent" ]; then
             SSH_AGENT_IMAGE="${TAGGED_IMAGE}"
           fi
           pygmy --config examples/pygmy.yml addkey /home/runner/.ssh/id_rsa;
