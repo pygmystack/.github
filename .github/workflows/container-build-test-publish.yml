@@ -12,6 +12,11 @@ on:
         required: false
         default: ""
         type: string
+      container_name:
+        description: Pygmy container name suffix (the part after 'amazeeio-') used for docker inspect checks. Defaults to image_name_legacy, then image_name.
+        required: false
+        default: ""
+        type: string
       replace_source:
         description: Image reference in examples/* to replace with the generated tag.
         required: true
@@ -185,7 +190,7 @@ jobs:
           pygmy --config examples/pygmy.basic.yml export -o ./exported-config.yml
           cat ./exported-config.yml
           echo "Checking image references in started containers...";
-          docker container inspect amazeeio-${{ inputs.image_name_legacy }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
+          docker container inspect amazeeio-${{ inputs.container_name || inputs.image_name_legacy || inputs.image_name }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
       -
         name: Resolv file test
         run: |
@@ -247,7 +252,7 @@ jobs:
           pygmy --config examples/pygmy.yml export -o ./exported-config-2.yml
           cat ./exported-config-2.yml
           echo "Checking image references in started containers...";
-          docker container inspect amazeeio-${{ inputs.image_name_legacy }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
+          docker container inspect amazeeio-${{ inputs.container_name || inputs.image_name_legacy || inputs.image_name }} | jq '.[].Config.Image' | grep -F '${{ steps.single_tag.outputs.tag }}';
       -
         name: SSH Key test
         env:
